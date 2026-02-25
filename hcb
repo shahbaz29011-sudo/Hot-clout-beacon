@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOT CLOUD BEACON</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --hot: #ff4500;
+    --cloud: #00c8ff;
+    --beacon: #ffe000;
+    --bg: #050a14;
+    --dark: #0a1628;
+    --glow-hot: 0 0 20px #ff4500, 0 0 40px #ff450055;
+    --glow-cloud: 0 0 20px #00c8ff, 0 0 40px #00c8ff55;
+    --glow-beacon: 0 0 20px #ffe000, 0 0 40px #ffe00055;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Space Mono', monospace;
+    color: #fff;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+  }
+
+  /* STARFIELD */
+  #stars {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    animation: twinkle linear infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+  }
+
+  /* SCREENS */
+  .screen {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; }
+
+  /* TITLE SCREEN */
+  #title-screen {
+    background: radial-gradient(ellipse at center, #0a1628 0%, #050a14 70%);
+  }
+
+  .game-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2rem, 6vw, 5rem);
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-align: center;
+    line-height: 1.1;
+    margin-bottom: 2rem;
+  }
+  .word-hot { color: var(--hot); text-shadow: var(--glow-hot); animation: pulse-hot 2s ease-in-out infinite; }
+  .word-cloud { color: var(--cloud); text-shadow: var(--glow-cloud); animation: pulse-cloud 2s ease-in-out infinite 0.3s; }
+  .word-beacon { color: var(--beacon); text-shadow: var(--glow-beacon); animation: pulse-beacon 2s ease-in-out infinite 0.6s; }
+
+  @keyframes pulse-hot { 0%,100%{text-shadow: 0 0 20px #ff4500, 0 0 40px #ff450055;} 50%{text-shadow: 0 0 40px #ff4500, 0 0 80px #ff4500aa;} }
+  @keyframes pulse-cloud { 0%,100%{text-shadow: 0 0 20px #00c8ff, 0 0 40px #00c8ff55;} 50%{text-shadow: 0 0 40px #00c8ff, 0 0 80px #00c8ffaa;} }
+  @keyframes pulse-beacon { 0%,100%{text-shadow: 0 0 20px #ffe000, 0 0 40px #ffe00055;} 50%{text-shadow: 0 0 40px #ffe000, 0 0 80px #ffe000aa;} }
+
+  .subtitle {
+    color: #aaa;
+    font-size: clamp(0.7rem, 2vw, 1rem);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 3rem;
+  }
+
+  .btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    padding: 1rem 3rem;
+    border: 2px solid var(--beacon);
+    background: transparent;
+    color: var(--beacon);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    box-shadow: var(--glow-beacon);
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .btn:hover {
+    background: var(--beacon);
+    color: var(--bg);
+    box-shadow: 0 0 40px #ffe000, 0 0 80px #ffe00077;
+  }
+
+  .legend {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+  }
+  .legend-item { display: flex; align-items: center; gap: 0.5rem; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+  /* GAME SCREEN */
+  #game-screen { background: transparent; }
+
+  #hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: linear-gradient(to bottom, rgba(5,10,20,0.95), transparent);
+  }
+
+  .hud-block { text-align: center; }
+  .hud-label { font-size: 0.6rem; letter-spacing: 0.3em; color: #555; text-transform: uppercase; }
+  .hud-value { font-family: 'Orbitron', monospace; font-size: 1.4rem; font-weight: 700; }
+  #score-val { color: var(--beacon); text-shadow: var(--glow-beacon); }
+  #lives-val { color: var(--hot); text-shadow: var(--glow-hot); }
+  #level-val { color: var(--cloud); text-shadow: var(--glow-cloud); }
+
+  /* BEACON (player) */
+  #beacon {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15;
+    transition: left 0.08s;
+    cursor: none;
+  }
+
+  .beacon-body {
+    width: 50px;
+    height: 60px;
+    position: relative;
+    margin: 0 auto;
+  }
+
+  .beacon-tower {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 40px;
+    background: linear-gradient(to top, #334, var(--cloud));
+    clip-path: polygon(20% 100%, 80% 100%, 90% 0%, 10% 0%);
+    box-shadow: var(--glow-cloud);
+  }
+
+  .beacon-light {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 18px;
+    background: var(--beacon);
+    border-radius: 50%;
+    box-shadow: var(--glow-beacon);
+    animation: beacon-pulse 0.8s ease-in-out infinite;
+  }
+
+  @keyframes beacon-pulse {
+    0%,100% { transform: translateX(-50%) scale(1); box-shadow: 0 0 10px #ffe000, 0 0 30px #ffe000; }
+    50% { transform: translateX(-50%) scale(1.3); box-shadow: 0 0 20px #ffe000, 0 0 60px #ffe000, 0 0 100px #ffe00044; }
+  }
+
+  .beacon-ray {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 2px;
+    height: 120px;
+    background: linear-gradient(to bottom, var(--beacon), transparent);
+    transform-origin: top center;
+    opacity: 0.6;
+  }
+  .ray-l { transform: translateX(-50%) rotate(-30deg); }
+  .ray-c { transform: translateX(-50%) rotate(0deg); }
+  .ray-r { transform: translateX(-50%) rotate(30deg); }
+
+  #bullet-pool, #entity-pool { position: fixed; inset: 0; z-index: 12; pointer-events: none; }
+
+  .bullet {
+    position: absolute;
+    width: 4px;
+    height: 20px;
+    background: linear-gradient(to top, var(--beacon), white);
+    border-radius: 2px;
+    box-shadow: 0 0 8px var(--beacon);
+  }
+
+  .cloud-enemy {
+    position: absolute;
+    font-size: clamp(28px, 5vw, 48px);
+    filter: drop-shadow(0 0 8px #00c8ff88);
+    animation: cloud-float 3s ease-in-out infinite;
+    cursor: default;
+  }
+  .hot-enemy {
+    position: absolute;
+    font-size: clamp(24px, 4vw, 40px);
+    filter: drop-shadow(0 0 8px #ff450088);
+    animation: flame-flicker 0.3s ease-in-out infinite;
+  }
+  .beacon-pickup {
+    position: absolute;
+    font-size: clamp(20px, 3.5vw, 36px);
+    animation: beacon-spin 2s linear infinite;
+    filter: drop-shadow(0 0 10px #ffe00099);
+  }
+
+  @keyframes cloud-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  @keyframes flame-flicker { 0%,100%{transform:scale(1) rotate(-3deg)} 50%{transform:scale(1.1) rotate(3deg)} }
+  @keyframes beacon-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+  /* GAME OVER */
+  #gameover-screen {
+    background: rgba(5,10,20,0.95);
+  }
+  .go-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2rem, 7vw, 5rem);
+    font-weight: 900;
+    color: var(--hot);
+    text-shadow: var(--glow-hot);
+    margin-bottom: 1rem;
+    animation: shake 0.5s ease-in-out;
+  }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)}
+  }
+  .go-score { font-size: 1.2rem; color: #aaa; margin-bottom: 0.5rem; }
+  .go-final { font-family: 'Orbitron', monospace; font-size: 3rem; color: var(--beacon); text-shadow: var(--glow-beacon); margin-bottom: 2rem; }
+  .go-msg { font-size: 0.8rem; color: #555; letter-spacing: 0.2em; margin-bottom: 2rem; }
+
+  /* COMBO */
+  #combo {
+    position: fixed;
+    top: 100px;
+    right: 2rem;
+    z-index: 20;
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--beacon);
+    text-shadow: var(--glow-beacon);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  /* EXPLOSION */
+  .explosion {
+    position: absolute;
+    pointer-events: none;
+    font-size: 2rem;
+    animation: explode 0.5s forwards;
+    z-index: 16;
+  }
+  @keyframes explode {
+    0% { transform: scale(0.5); opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  /* WAVE ANNOUNCE */
+  #wave-announce {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 25;
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.5rem, 5vw, 3rem);
+    font-weight: 900;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  /* MOBILE CONTROLS */
+  #mobile-controls {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    padding: 10px;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .mob-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    color: white;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mob-center { display: flex; gap: 15px; }
+
+  @media (pointer: coarse) {
+    #mobile-controls { display: flex; }
+    #beacon { bottom: 100px; }
+  }
+
+  .scanline-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+  }
+
+  #ground {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    background: linear-gradient(to top, #0a1628, transparent);
+    z-index: 11;
+  }
+  .ground-line {
+    position: absolute;
+    bottom: 58px;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--cloud), transparent);
+    box-shadow: var(--glow-cloud);
+    opacity: 0.5;
+  }
+
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+<div class="scanline-overlay"></div>
+
+<!-- TITLE -->
+<div class="screen" id="title-screen">
+  <div class="game-title">
+    <span class="word-hot">HOT</span><br>
+    <span class="word-cloud">CLOUD</span><br>
+    <span class="word-beacon">BEACON</span>
+  </div>
+  <div class="subtitle">A space shooter odyssey</div>
+  <button class="btn" id="start-btn">LAUNCH MISSION</button>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#00c8ff;box-shadow:0 0 8px #00c8ff"></div> Clouds: Shoot</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ff4500;box-shadow:0 0 8px #ff4500"></div> Fire: Avoid</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ffe000;box-shadow:0 0 8px #ffe000"></div> Beacon: Collect</div>
+  </div>
+  <div style="margin-top:1.5rem;font-size:0.65rem;color:#333;letter-spacing:0.2em">MOVE: ARROWS/WASD &nbsp;|&nbsp; SHOOT: SPACE</div>
+</div>
+
+<!-- GAME -->
+<div class="screen hidden" id="game-screen">
+  <div id="hud">
+    <div class="hud-block">
+      <div class="hud-label">Score</div>
+      <div class="hud-value" id="score-val">0</div>
+    </div>
+    <div class="hud-block">
+      <div class="hud-label">Lives</div>
+      <div class="hud-value" id="lives-val">♥♥♥</div>
+    </div>
+    <div class="hud-block">
+      <div class="hud-label">Level</div>
+      <div class="hud-value" id="level-val">1</div>
+    </div>
+  </div>
+  <div id="combo"></div>
+  <div id="wave-announce"></div>
+  <div id="bullet-pool"></div>
+  <div id="entity-pool"></div>
+  <div id="beacon">
+    <div class="beacon-body">
+      <div class="beacon-ray ray-l"></div>
+      <div class="beacon-ray ray-c"></div>
+      <div class="beacon-ray ray-r"></div>
+      <div class="beacon-light"></div>
+      <div class="beacon-tower"></div>
+    </div>
+  </div>
+  <div id="ground"><div class="ground-line"></div></div>
+</div>
+
+<!-- GAME OVER -->
+<div class="screen hidden" id="gameover-screen">
+  <div class="go-title">SIGNAL LOST</div>
+  <div class="go-score">Final Score</div>
+  <div class="go-final" id="final-score">0</div>
+  <div class="go-msg" id="go-msg">The hot clouds overwhelmed your beacon.</div>
+  <button class="btn" id="restart-btn">RELAUNCH</button>
+</div>
+
+<!-- MOBILE CONTROLS -->
+<div id="mobile-controls">
+  <button class="mob-btn" id="mob-left">◀</button>
+  <div class="mob-center">
+    <button class="mob-btn" id="mob-shoot" style="border-color:var(--beacon);color:var(--beacon);font-size:1rem;">FIRE</button>
+  </div>
+  <button class="mob-btn" id="mob-right">▶</button>
+</div>
+
+<script>
+// STARS
+const starsEl = document.getElementById('stars');
+for(let i=0;i<120;i++){
+  const s=document.createElement('div');
+  s.className='star';
+  const sz=Math.random()*2.5+0.5;
+  s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${2+Math.random()*4}s;animation-delay:${Math.random()*4}s`;
+  starsEl.appendChild(s);
+}
+
+// GAME STATE
+let state = {
+  score:0, lives:3, level:1, running:false,
+  beaconX: window.innerWidth/2,
+  bullets:[], entities:[],
+  keys:{}, lastShot:0, combo:0, comboTimer:0,
+  spawnTimer:0, waveTimer:0, waveCount:0,
+  invincible:0
+};
+
+const W=()=>window.innerWidth, H=()=>window.innerHeight;
+const beaconEl = document.getElementById('beacon');
+const bulletPool = document.getElementById('bullet-pool');
+const entityPool = document.getElementById('entity-pool');
+const comboEl = document.getElementById('combo');
+const waveEl = document.getElementById('wave-announce');
+
+// DOM bullets & entities
+let bNodes=[], eNodes=[];
+
+function getBNode(){
+  for(let n of bNodes) if(n.style.display==='none') return n;
+  const n=document.createElement('div'); n.className='bullet'; bulletPool.appendChild(n); bNodes.push(n); return n;
+}
+
+function spawnBullet(x,y){
+  const n=getBNode();
+  n.style.display='block';
+  n.style.left=x+'px'; n.style.top=y+'px';
+  return {el:n, x, y, vy:-14};
+}
+
+const EMOJIS = {cloud:['☁️','🌩️','🌧️','⛅'], hot:['🔥','🌋','💥','😈'], beacon:['⭐','✨','💫','🌟']};
+
+function getENode(){
+  for(let n of eNodes) if(n.style.display==='none') return n;
+  const n=document.createElement('div'); entityPool.appendChild(n); eNodes.push(n); return n;
+}
+
+function spawnEntity(type){
+  const n=getENode();
+  n.className = type+'-enemy'+(type==='beacon-pickup'?'':type==='beacon'?'':' ');
+  if(type==='cloud') n.className='cloud-enemy';
+  else if(type==='hot') n.className='hot-enemy';
+  else n.className='beacon-pickup';
+
+  const arr = type==='cloud'?EMOJIS.cloud : type==='hot'?EMOJIS.hot : EMOJIS.beacon;
+  n.textContent = arr[Math.floor(Math.random()*arr.length)];
+  n.style.display='block';
+
+  const x = Math.random()*(W()-60)+20;
+  n.style.left=x+'px'; n.style.top='-60px';
+
+  const speed = 1.5 + state.level*0.4 + Math.random()*1.5;
+  const drift = (Math.random()-0.5)*1.5;
+  return {el:n, x, y:-60, vy:speed, vx:drift, type, w:44, h:44};
+}
+
+function showExplosion(x,y,emoji){
+  const e=document.createElement('div');
+  e.className='explosion';
+  e.textContent=emoji;
+  e.style.left=x+'px'; e.style.top=y+'px';
+  entityPool.appendChild(e);
+  setTimeout(()=>e.remove(),500);
+}
+
+// INPUT
+document.addEventListener('keydown',e=>{ state.keys[e.code]=true; e.preventDefault&&[' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)&&e.preventDefault(); });
+document.addEventListener('keyup',e=>{ state.keys[e.code]=false; });
+
+// Mobile
+const mobL=document.getElementById('mob-left'), mobR=document.getElementById('mob-right'), mobShoot=document.getElementById('mob-shoot');
+mobL.addEventListener('touchstart',()=>state.keys['ArrowLeft']=true);
+mobL.addEventListener('touchend',()=>state.keys['ArrowLeft']=false);
+mobR.addEventListener('touchstart',()=>state.keys['ArrowRight']=true);
+mobR.addEventListener('touchend',()=>state.keys['ArrowRight']=false);
+mobShoot.addEventListener('touchstart',()=>state.keys['Space']=true);
+mobShoot.addEventListener('touchend',()=>state.keys['Space']=false);
+
+// Update HUD
+function updateHUD(){
+  document.getElementById('score-val').textContent=state.score;
+  document.getElementById('lives-val').textContent='♥'.repeat(Math.max(0,state.lives));
+  document.getElementById('level-val').textContent=state.level;
+}
+
+function showCombo(n){
+  if(n<2) return;
+  comboEl.textContent=`×${n} COMBO!`;
+  comboEl.style.opacity=1;
+  comboEl.style.fontSize=(1.2+n*0.2)+'rem';
+  clearTimeout(state.comboTimeout);
+  state.comboTimeout=setTimeout(()=>comboEl.style.opacity=0,1000);
+}
+
+function announceWave(txt, color){
+  waveEl.textContent=txt;
+  waveEl.style.color=color;
+  waveEl.style.textShadow=`0 0 30px ${color}`;
+  waveEl.style.opacity=1;
+  waveEl.style.transition='opacity 0s';
+  setTimeout(()=>{ waveEl.style.transition='opacity 1s'; waveEl.style.opacity=0; },1500);
+}
+
+let raf, lastTime=0;
+
+function gameLoop(ts){
+  const dt = Math.min((ts-lastTime)/16.6, 3);
+  lastTime=ts;
+  if(!state.running){return;}
+  raf = requestAnimationFrame(gameLoop);
+
+  // MOVE BEACON
+  const speed=6*dt;
+  if(state.keys['ArrowLeft']||state.keys['KeyA']) state.beaconX = Math.max(30,state.beaconX-speed);
+  if(state.keys['ArrowRight']||state.keys['KeyD']) state.beaconX = Math.min(W()-30,state.beaconX+speed);
+  beaconEl.style.left = state.beaconX+'px';
+
+  // SHOOT
+  const now=performance.now();
+  const fireRate = Math.max(150, 400-state.level*20);
+  if((state.keys['Space']||state.keys['ArrowUp']||state.keys['KeyW']) && now-state.lastShot>fireRate){
+    state.bullets.push(spawnBullet(state.beaconX-2, H()-130));
+    state.lastShot=now;
+  }
+
+  // UPDATE BULLETS
+  state.bullets = state.bullets.filter(b=>{
+    b.y += b.vy*dt;
+    b.el.style.top=b.y+'px';
+    b.el.style.left=b.x+'px';
+    if(b.y < -30){ b.el.style.display='none'; return false; }
+    return true;
+  });
+
+  // SPAWN ENTITIES
+  state.spawnTimer -= dt;
+  if(state.spawnTimer<=0){
+    const rate = Math.max(40, 120-state.level*8);
+    state.spawnTimer = rate/10 + Math.random()*5;
+
+    const r=Math.random();
+    let type;
+    if(r<0.12) type='beacon';
+    else if(r<0.12+0.35+state.level*0.02) type='hot';
+    else type='cloud';
+
+    state.entities.push(spawnEntity(type==='beacon'?'beacon':type));
+  }
+
+  // LEVEL UP
+  state.waveTimer -= dt;
+  if(state.waveTimer <= 0){
+    state.waveTimer = 600;
+    state.level++;
+    announceWave(`LEVEL ${state.level}`, '#00c8ff');
+    updateHUD();
+  }
+
+  // INVINCIBILITY
+  if(state.invincible>0){
+    state.invincible-=dt;
+    beaconEl.style.opacity=Math.sin(state.invincible*3)>0?'1':'0.3';
+  } else beaconEl.style.opacity='1';
+
+  // BEACON BOUNDS for beacon pickup spawn
+  const bX=state.beaconX, bY=H()-120;
+
+  // UPDATE ENTITIES & COLLISION
+  state.entities = state.entities.filter(e=>{
+    e.y += e.vy*dt; e.x += e.vx*dt;
+    e.el.style.top=e.y+'px'; e.el.style.left=e.x+'px';
+
+    if(e.y > H()+60){ e.el.style.display='none'; return false; }
+
+    // Bullet collision (clouds only)
+    if(e.type==='cloud'){
+      for(let i=state.bullets.length-1;i>=0;i--){
+        const bu=state.bullets[i];
+        if(Math.abs(bu.x-e.x)<35 && Math.abs(bu.y-e.y)<35){
+          bu.el.style.display='none'; state.bullets.splice(i,1);
+          showExplosion(e.x, e.y, '💨');
+          e.el.style.display='none';
+          state.combo++;
+          state.score += 100*state.combo;
+          showCombo(state.combo);
+          updateHUD();
+          return false;
+        }
+      }
+    }
+
+    // Player collision
+    if(Math.abs(bX-e.x)<30 && Math.abs(bY-e.y)<30){
+      if(e.type==='beacon'){
+        showExplosion(e.x,e.y,'⭐');
+        e.el.style.display='none';
+        state.score+=500;
+        announceWave('BEACON! +500',  '#ffe000');
+        updateHUD();
+        return false;
+      }
+      if(e.type==='hot' && state.invincible<=0){
+        showExplosion(e.x,e.y,'💥');
+        e.el.style.display='none';
+        state.lives--;
+        state.combo=0;
+        state.invincible=120;
+        announceWave('BURNED! ♥-1', '#ff4500');
+        updateHUD();
+        if(state.lives<=0){ endGame(); return false; }
+        return false;
+      }
+      if(e.type==='cloud' && state.invincible<=0){
+        e.el.style.display='none';
+        state.lives--;
+        state.combo=0;
+        state.invincible=120;
+        announceWave('CLOUDED! ♥-1','#00c8ff');
+        updateHUD();
+        if(state.lives<=0){ endGame(); return false; }
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function startGame(){
+  state = {
+    score:0, lives:3, level:1, running:true,
+    beaconX: W()/2, bullets:[], entities:[],
+    keys:{...state.keys}, lastShot:0, combo:0,
+    spawnTimer:10, waveTimer:600, invincible:0
+  };
+  bNodes.forEach(n=>n.style.display='none');
+  eNodes.forEach(n=>n.style.display='none');
+  bulletPool.innerHTML=''; entityPool.innerHTML='';
+  bNodes=[]; eNodes=[];
+  updateHUD();
+  document.getElementById('title-screen').classList.add('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+  document.getElementById('game-screen').classList.remove('hidden');
+  lastTime=performance.now();
+  announceWave('MISSION START!','#ffe000');
+  raf=requestAnimationFrame(gameLoop);
+}
+
+function endGame(){
+  state.running=false;
+  cancelAnimationFrame(raf);
+  setTimeout(()=>{
+    document.getElementById('game-screen').classList.add('hidden');
+    document.getElementById('final-score').textContent=state.score;
+    const msgs = state.score>5000?'Outstanding beacon signal! The clouds retreated.':
+                 state.score>2000?'Good effort! The clouds almost overwhelmed you.':
+                 'The hot clouds overwhelmed your beacon. Try again!';
+    document.getElementById('go-msg').textContent=msgs;
+    document.getElementById('gameover-screen').classList.remove('hidden');
+  },500);
+}
+
+document.getElementById('start-btn').addEventListener('click',startGame);
+document.getElementById('restart-btn').addEventListener('click',startGame);
+</script>
+</body>
+</html>
