@@ -1,0 +1,46 @@
+# 🚀 HOT · CLOUD · BEACON
+
+A futuristic neon space shooter built with pure HTML, CSS, JavaScript, and Node.js.
+
+Defend your beacon from falling hot clouds in this fast-paced arcade survival game featuring combos, level progression, and dynamic enemy spawning.
+
+---
+
+## 🎮 Game Overview
+
+Three random words inspired the game:
+
+- 🔥 **HOT** → Fire enemies (avoid them)
+- ☁️ **CLOUD** → Main enemies (shoot them)
+- ⭐ **BEACON** → Bonus pickups (collect for points)
+
+You control a glowing beacon tower defending against waves of descending threats.
+
+---
+
+## 🕹 Controls
+
+### Desktop
+- **Move Left / Right:** Arrow Keys or A / D
+- **Shoot:** Space or W / Arrow Up
+
+### Mobile
+- On-screen touch controls enabled automatically
+
+---
+
+## ✨ Features
+
+- 🌌 Animated starfield background
+- 💥 Explosion effects
+- ✨ Combo multiplier system
+- 📈 Automatic level progression
+- ❤️ Lives system
+- 🎇 Neon glowing cyber UI
+- 📱 Fully responsive (mobile supported)
+- 🏆 MongoDB leaderboard API
+- 🚀 Express backend server
+
+---
+
+## 🏗 Project Structure
